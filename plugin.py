@@ -33,6 +33,7 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
+from supybot import log
 try:
     from supybot.i18n import PluginInternationalization
     _ = PluginInternationalization('Darksky')
@@ -49,7 +50,7 @@ from geolocation.main import GoogleMaps
 class Darksky(callbacks.Plugin):
     """Shows weather data using darksky.net (formerly forecast.io)"""
     threaded = True
-
+    
     def _degrees_to_cardinal(self, d):
         """
         note: this is highly approximate...
@@ -65,6 +66,8 @@ class Darksky(callbacks.Plugin):
 
         Fetch forecast information from <location>.
         """
+        
+        channel = msg.args[0]
 
         darksky_api = self.registryValue('darksky_api')
         if not darksky_api:
@@ -74,24 +77,32 @@ class Darksky(callbacks.Plugin):
         if not geocode_api:
             irc.error("No Google Geocode API key.", Raise=True)
 
-        lang = self.registryValue('lang')
-        units = self.registryValue('units')
+        lang = self.registryValue('lang', channel=channel)
+        units = self.registryValue('units', channel=channel)
 
         # Getting location information
-        try:
-            google_maps = GoogleMaps(api_key=geocode_api)
-            loc = google_maps.search(location=location)
-            my_loc = loc.first()
-        except:
-            irc.error('Google API Error', Raise=True)
+        for i in range(0,3):
+            try:
+                google_maps = GoogleMaps(api_key=geocode_api)
+                loc = google_maps.search(location=location)
+                my_loc = loc.first()
+            except:
+                continue
 
 
         # Getting forecast information
-        fio = ForecastIO.ForecastIO(darksky_api,
+        try:
+            fio = ForecastIO.ForecastIO(darksky_api,
                                     units=units,
                                     lang=lang,
                                     latitude=my_loc.lat,
                                     longitude=my_loc.lng)
+        except:
+            irc.error('Weather API error', Raise=True)
+
+        print(format('URL: %s', fio.get_url()))
+
+        units = fio.flags['units']
 
         # Unit formatting
         if units != 'us':
@@ -117,6 +128,7 @@ class Darksky(callbacks.Plugin):
                 'fog': '🌁',
                 'cloudy': '☁️',
                 'partly-cloudy-day': '🌤️',
+                'partly-cloudy-night': '☁️',
                 'thunderstorm': '⛈️',
                 'tornado': '🌪'
                 }
@@ -137,7 +149,7 @@ class Darksky(callbacks.Plugin):
             if not now_summary:
                 now_summary = currently.summary
 
-            now = format('%s: %s%s (🌡️ %s%s). %s %s Hum: %s%%, Wind: %s%s %s',
+            now = format('%s: %s%s (≈%s%s). %s %s Hum: %s%%, Wind: %s%s %s',
                     ircutils.bold(my_loc.formatted_address),
                     int(currently.temperature), _tempU,
                     int(currently.apparentTemperature), _tempU,
@@ -182,7 +194,7 @@ class Darksky(callbacks.Plugin):
                     int(day_3['apparentTemperatureHigh']), _tempU,
                     )
                     
-        irc.reply(now + ' ' + overall + ' ' + tomorow + ' ' + dat)
+        irc.reply(now + ' ' + overall + ' ' + tomorow + '. ' + dat)
 
     forecast = wrap(forecast, ['text'])
 
