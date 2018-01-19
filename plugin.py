@@ -41,7 +41,8 @@ except ImportError:
     # without the i18n module
     _ = lambda x: x
 
-
+import datetime
+import calendar
 from forecastiopy import *
 from geolocation.main import GoogleMaps
 
@@ -77,9 +78,13 @@ class Darksky(callbacks.Plugin):
         units = self.registryValue('units')
 
         # Getting location information
-        google_maps = GoogleMaps(api_key=geocode_api)
-        loc = google_maps.search(location=location)
-        my_loc = loc.first()
+        try:
+            google_maps = GoogleMaps(api_key=geocode_api)
+            loc = google_maps.search(location=location)
+            my_loc = loc.first()
+        except:
+            irc.error('Google API Error', Raise=True)
+
 
         # Getting forecast information
         fio = ForecastIO.ForecastIO(darksky_api,
@@ -101,6 +106,21 @@ class Darksky(callbacks.Plugin):
         else:
             _speedU = 'mph'
 
+
+        # Emoji!
+        _icons = { 'clear-day': '☀️',
+                'clear-night': '🌕',
+                'rain': '🌧️',
+                'snow': '❄️',
+                'sleet': '🌧️❄️',
+                'wind': '💨',
+                'fog': '🌁',
+                'cloudy': '☁️',
+                'partly-cloudy-day': '🌤️',
+                'thunderstorm': '⛈️',
+                'tornado': '🌪'
+                }
+
         now_summary = ''
 
         if fio.has_minutely() is True:
@@ -117,18 +137,52 @@ class Darksky(callbacks.Plugin):
             if not now_summary:
                 now_summary = currently.summary
 
-            now = format('%s: %s%s (feels like %s%s). %s Hum: %s%%, Wind: %s%s %s',
+            now = format('%s: %s%s (🌡️ %s%s). %s %s Hum: %s%%, Wind: %s%s %s',
                     ircutils.bold(my_loc.formatted_address),
                     int(currently.temperature), _tempU,
                     int(currently.apparentTemperature), _tempU,
+                    _icons[currently.icon],
                     now_summary,
                     int(currently.humidity * 100),
                     int(currently.windSpeed), _speedU,
                     self._degrees_to_cardinal(currently.windBearing),
                     )
 
-        irc.reply(now)
+        if fio.has_daily() is True:
+            daily = FIODaily.FIODaily(fio)
 
+            overall = format('%s%s',
+                    _icons[daily.icon],
+                    daily.summary
+                    )
+            
+            day_2 = daily.get_day(2)
+            tomorow_name = calendar.day_name[ datetime.datetime.utcfromtimestamp(day_2['time']).weekday() ]
+
+            tomorow = format('%s: %s%s Min: %s%s/%s%s Max: %s%s/%s%s',
+                    ircutils.underline(tomorow_name),
+                    _icons[day_2['icon']],
+                    day_2['summary'],
+                    int(day_2['temperatureLow']), _tempU,
+                    int(day_2['apparentTemperatureLow']), _tempU,
+                    int(day_2['temperatureHigh']), _tempU, 
+                    int(day_2['apparentTemperatureHigh']), _tempU,
+                    )
+
+            day_3 = daily.get_day(3)
+            dat_name = calendar.day_name[ datetime.datetime.utcfromtimestamp(day_3['time']).weekday() ]
+
+            dat =    format('%s: %s%s Min: %s%s/%s%s Max: %s%s/%s%s',
+                    ircutils.underline(dat_name),
+                    _icons[day_3['icon']],
+                    day_3['summary'],
+                    int(day_3['temperatureLow']), _tempU,
+                    int(day_3['apparentTemperatureLow']), _tempU,
+                    int(day_3['temperatureHigh']), _tempU,
+                    int(day_3['apparentTemperatureHigh']), _tempU,
+                    )
+                    
+        irc.reply(now + ' ' + overall + ' ' + tomorow + ' ' + dat)
 
     forecast = wrap(forecast, ['text'])
 
