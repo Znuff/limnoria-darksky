@@ -52,17 +52,16 @@ Darksky = conf.registerPlugin('Darksky')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(Darksky, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-conf.registerGlobalValue(Darksky, 'darksy_api',
+conf.registerGlobalValue(Darksky, 'darksky_api',
         registry.String('', _("""Darksky.net API Key""")))
 
 conf.registerGlobalValue(Darksky, 'geocode_api',
         registry.String('', _("""Google Geocode API Key""")))
 
 conf.registerChannelValue(Darksky, 'lang',
-        registry.String('en', _("""Language to use: _en_, de, fr, it, es, ru, bs, nl,
-            pl, pt, tet, x-pig-latin""")))
+        registry.String('en', _("""Language to use - default 'en' (de/fr/it/ru etc.)""")))
 
 conf.registerChannelValue(Darksky, 'units',
-        registry.String('auto', _("""Units to use: _auto_, us, si, ca, uk""")))
+        registry.String('auto', _("""Units to use - default 'ca' (us/uk2/si/auto)""")))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
