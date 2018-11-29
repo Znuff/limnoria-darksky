@@ -1,2 +1,2 @@
-geolocation-python
 forecastiopy
+googlemaps

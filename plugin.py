@@ -45,7 +45,7 @@ except ImportError:
 import datetime
 import calendar
 from forecastiopy import *
-from geolocation.main import GoogleMaps
+import googlemaps
 
 class Darksky(callbacks.Plugin):
     """Shows weather data using darksky.net (formerly forecast.io)"""
@@ -81,22 +81,28 @@ class Darksky(callbacks.Plugin):
         units = self.registryValue('units', channel=channel)
 
         # Getting location information
-        for i in range(0,3):
+        for i in range(0,10):
             try:
-                google_maps = GoogleMaps(api_key=geocode_api)
-                loc = google_maps.search(location=location)
-                my_loc = loc.first()
+                gmaps = googlemaps.Client(key=geocode_api)
+                loc = gmaps.geocode(location)
+                my_loc = {}
+                my_loc['lat'] = loc[0]['geometry']['location']['lat']
+                my_loc['lng'] = loc[0]['geometry']['location']['lng']
+                my_loc['formatted_address'] = loc[0]['formatted_address']
             except:
+                print('Google API Error')
                 continue
 
 
         # Getting forecast information
         try:
+            print(my_loc)
             fio = ForecastIO.ForecastIO(darksky_api,
                                     units=units,
                                     lang=lang,
-                                    latitude=my_loc.lat,
-                                    longitude=my_loc.lng)
+                                    latitude=my_loc['lat'],
+                                    longitude=my_loc['lng'])
+            print(format('URL: %s', fio.get_url()))
         except:
             irc.error('Weather API error', Raise=True)
 
@@ -150,7 +156,7 @@ class Darksky(callbacks.Plugin):
                 now_summary = currently.summary
 
             now = format('%s: %s%s (≈%s%s). %s %s Hum: %s%%, Wind: %s%s %s',
-                    ircutils.bold(my_loc.formatted_address),
+                    ircutils.bold(my_loc['formatted_address']),
                     int(currently.temperature), _tempU,
                     int(currently.apparentTemperature), _tempU,
                     _icons[currently.icon],
