@@ -89,6 +89,7 @@ class Darksky(callbacks.Plugin):
                 my_loc['lat'] = loc[0]['geometry']['location']['lat']
                 my_loc['lng'] = loc[0]['geometry']['location']['lng']
                 my_loc['formatted_address'] = loc[0]['formatted_address']
+                break
             except:
                 print('Google API Error')
                 continue
